@@ -1,0 +1,3 @@
+[submodule "WFA"]
+	path = WFA
+	url = git@github.com:smarco/WFA.git
