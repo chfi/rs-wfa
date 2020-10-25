@@ -16,13 +16,11 @@ impl AffineWavefronts {
         pattern_len: usize,
         text_len: usize,
         penalties: &mut AffinePenalties,
-        wavefronts_stats: Option<*const u8>,
         alloc: &MMAllocator,
     ) -> Self {
         let pat_len = pattern_len as c_int;
         let text_len = text_len as c_int;
-        let penalties = penalties as *mut AffinePenalties;
-        let penalties_ptr: *mut affine_penalties_t = penalties.cast();
+        let penalties_ptr = penalties.as_ptr();
         let stats_ptr = std::ptr::null_mut() as *mut wavefronts_stats_t;
         let ptr = unsafe {
             affine_wavefronts_new_complete(
@@ -34,6 +32,33 @@ impl AffineWavefronts {
             )
         };
         AffineWavefronts { ptr }
+    }
+
+    pub fn new_reduced(
+        pattern_len: usize,
+        text_len: usize,
+        penalties: &mut AffinePenalties,
+        min_wavefront_len: i32,
+        min_dist_threshold: i32,
+        alloc: &MMAllocator,
+    ) -> Self {
+        let pat_len = pattern_len as c_int;
+        let text_len = text_len as c_int;
+        let stats_ptr = std::ptr::null_mut() as *mut wavefronts_stats_t;
+
+        let ptr = unsafe {
+            affine_wavefronts_new_reduced(
+                pat_len,
+                text_len,
+                penalties.as_ptr(),
+                min_wavefront_len as c_int,
+                min_dist_threshold as c_int,
+                stats_ptr,
+                alloc.alloc_ptr(),
+            )
+        };
+
+        Self { ptr }
     }
 
     pub fn align(&mut self, pattern: &[u8], text: &[u8]) {
