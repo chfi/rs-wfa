@@ -7,16 +7,17 @@ use crate::mm_allocator::MMAllocator;
 
 use crate::penalties::AffinePenalties;
 
-pub struct AffineWavefronts {
+pub struct AffineWavefronts<'a> {
     ptr: *mut affine_wavefronts_t,
+    allocator: &'a MMAllocator,
 }
 
-impl AffineWavefronts {
+impl<'a> AffineWavefronts<'a> {
     pub fn new_complete(
         pattern_len: usize,
         text_len: usize,
         penalties: &mut AffinePenalties,
-        alloc: &MMAllocator,
+        alloc: &'a MMAllocator,
     ) -> Self {
         let pat_len = pattern_len as c_int;
         let text_len = text_len as c_int;
@@ -31,7 +32,10 @@ impl AffineWavefronts {
                 alloc.alloc_ptr(),
             )
         };
-        AffineWavefronts { ptr }
+        AffineWavefronts {
+            ptr,
+            allocator: alloc,
+        }
     }
 
     pub fn new_reduced(
@@ -40,7 +44,7 @@ impl AffineWavefronts {
         penalties: &mut AffinePenalties,
         min_wavefront_len: i32,
         min_dist_threshold: i32,
-        alloc: &MMAllocator,
+        alloc: &'a MMAllocator,
     ) -> Self {
         let pat_len = pattern_len as c_int;
         let text_len = text_len as c_int;
@@ -58,7 +62,10 @@ impl AffineWavefronts {
             )
         };
 
-        Self { ptr }
+        Self {
+            ptr,
+            allocator: alloc,
+        }
     }
 
     pub fn align(&mut self, pattern: &[u8], text: &[u8]) {
@@ -89,7 +96,7 @@ impl AffineWavefronts {
         }
     }
 
-    pub fn print_cigar(&mut self, pattern: &[u8], text: &[u8], alloc: &MMAllocator) {
+    pub fn print_cigar(&mut self, pattern: &[u8], text: &[u8]) {
         let pat_len = pattern.len() as c_int;
         let text_len = text.len() as c_int;
         let pattern = CString::new(pattern).unwrap();
@@ -105,13 +112,13 @@ impl AffineWavefronts {
                 text.as_ptr(),
                 text_len,
                 cg_mut,
-                alloc.alloc_ptr(),
+                self.allocator.alloc_ptr(),
             );
         }
     }
 }
 
-impl Drop for AffineWavefronts {
+impl Drop for AffineWavefronts<'_> {
     fn drop(&mut self) {
         unsafe { affine_wavefronts_delete(self.ptr) }
     }

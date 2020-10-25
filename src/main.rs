@@ -19,13 +19,12 @@ fn main() {
     let pat_len = pattern.as_bytes().len();
     let text_len = text.as_bytes().len();
 
-    let mut wavefronts =
-        AffineWavefronts::new_complete(pat_len, text_len, &mut penalties, None, &alloc);
+    let mut wavefronts = AffineWavefronts::new_complete(pat_len, text_len, &mut penalties, &alloc);
 
     wavefronts.align(pattern.as_bytes(), text.as_bytes());
 
     let score = wavefronts.edit_cigar_score(&mut penalties);
 
     println!("score: {}", score);
-    wavefronts.print_cigar(pattern.as_bytes(), text.as_bytes(), &alloc);
+    wavefronts.print_cigar(pattern.as_bytes(), text.as_bytes());
 }
