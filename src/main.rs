@@ -1,21 +1,35 @@
+#![allow(non_upper_case_globals)]
+#![allow(non_camel_case_types)]
+#![allow(non_snake_case)]
+
 use libc::{c_int, size_t};
 
-/*
-#[repr(C)]
-pub struct MMAllocator {
-    // _private: [u8; 0],
-    _private: (),
-}
-
-extern "C" {
-    fn mm_allocator_new(segment_size: u64) -> *const MMAllocator;
-}
-*/
+use wfa_rs::bindings::*;
+use wfa_rs::{affine_wavefront::*, mm_allocator::*, penalties::*};
 
 fn main() {
-    println!("making allocator");
-    // unsafe {
-    //     let alloc = mm_allocator_new(1024);
-    // }
-    println!("Hello, world!");
+    let alloc = MMAllocator::new(BUFFER_SIZE_8M as u64);
+
+    let pattern = String::from("TCTTTACTCGCGCGTTGGAGAAATACAATAGT");
+    let text = String::from("TCTATACTGCGCGTTTGGAGAAATAAAATAGT");
+
+    let mut penalties = AffinePenalties {
+        match_: 0,
+        mismatch: 4,
+        gap_opening: 6,
+        gap_extension: 2,
+    };
+
+    let pat_len = pattern.as_bytes().len();
+    let text_len = text.as_bytes().len();
+
+    let mut wavefronts =
+        AffineWavefronts::new_complete(pat_len, text_len, &mut penalties, None, &alloc);
+
+    wavefronts.align(pattern.as_bytes(), text.as_bytes());
+
+    let score = wavefronts.edit_cigar_score(&mut penalties);
+
+    println!("score: {}", score);
+    wavefronts.print_cigar(pattern.as_bytes(), text.as_bytes(), &alloc);
 }
