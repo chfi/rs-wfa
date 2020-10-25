@@ -27,4 +27,8 @@ fn main() {
 
     println!("score: {}", score);
     wavefronts.print_cigar(pattern.as_bytes(), text.as_bytes());
+
+    let cigar = wavefronts.cigar_bytes();
+    let cg_str = std::str::from_utf8(&cigar).unwrap();
+    println!("cigar: {}", cg_str);
 }

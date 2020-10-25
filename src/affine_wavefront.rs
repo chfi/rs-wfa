@@ -1,4 +1,4 @@
-use libc::{c_int, size_t};
+use libc::{c_char, c_int, size_t};
 use std::ffi::CString;
 
 use crate::bindings::*;
@@ -68,6 +68,12 @@ impl<'a> AffineWavefronts<'a> {
         }
     }
 
+    pub fn clear(&mut self) {
+        unsafe {
+            affine_wavefronts_clear(self.ptr);
+        }
+    }
+
     pub fn align(&mut self, pattern: &[u8], text: &[u8]) {
         let pat_len = pattern.len() as c_int;
         let text_len = text.len() as c_int;
@@ -86,14 +92,30 @@ impl<'a> AffineWavefronts<'a> {
         }
     }
 
-    pub fn edit_cigar_score(&mut self, penalties: &mut AffinePenalties) -> c_int {
+    /// Returns the cigar string for the alignment as a vector of
+    /// bytes. Note that each operation is repeated however many times
+    /// it applies, i.e. instead of "3M1X" you get "MMMX".
+    pub fn cigar_bytes(&self) -> Vec<u8> {
+        let cigar = self.edit_cigar();
+        let slice: &[u8] = unsafe {
+            let ops_ptr = cigar.operations as *mut u8;
+            let start = ops_ptr.offset(cigar.begin_offset as isize);
+            let len = (cigar.end_offset - cigar.begin_offset) as usize;
+            std::slice::from_raw_parts(start, len)
+        };
+        slice.into()
+    }
+
+    pub fn edit_cigar_score(&mut self, penalties: &mut AffinePenalties) -> usize {
         let penalties = penalties as *mut AffinePenalties;
         let penalties_ptr: *mut affine_penalties_t = penalties.cast();
-        unsafe {
+        let score = unsafe {
             let wf_ref = self.ptr.as_mut().unwrap();
             let cigar = &mut wf_ref.edit_cigar as *mut edit_cigar_t;
             edit_cigar_score_gap_affine(cigar, penalties_ptr)
-        }
+        };
+
+        score as usize
     }
 
     pub fn print_cigar(&mut self, pattern: &[u8], text: &[u8]) {
