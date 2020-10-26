@@ -1,4 +1,4 @@
-use std::{ffi::CString, os::raw::c_int};
+use std::os::raw::{c_char, c_int};
 
 use crate::{
     bindings::*, mm_allocator::MMAllocator, penalties::AffinePenalties,
@@ -72,20 +72,20 @@ impl<'a> AffineWavefronts<'a> {
         }
     }
 
-    /// Align the given pattern and text string. Will allocate new
-    /// `CStrings` for both byteslices, and callers need to make sure
-    /// the byteslices have the correct length compared to the lengths
-    /// used to construct thing wavefronts object.
+    /// Align the given pattern and text string. Callers need to make
+    /// sure the byteslices have the correct length compared to the
+    /// lengths used to construct thing wavefronts object.
+    ///
+    /// Does *not* check that `pattern` and `text` are nul-terminated
+    /// CStrings, since the C function used takes the string lengths
+    /// as arguments.
     pub fn align(&mut self, pattern: &[u8], text: &[u8]) {
-        let pat_cstr = CString::new(pattern).unwrap();
-        let text_cstr = CString::new(text).unwrap();
-
         unsafe {
             affine_wavefronts_align(
                 self.ptr,
-                pat_cstr.as_ptr(),
+                pattern.as_ptr() as *const c_char,
                 pattern.len() as c_int,
-                text_cstr.as_ptr(),
+                text.as_ptr() as *const c_char,
                 text.len() as c_int,
             );
         }
@@ -121,7 +121,7 @@ impl<'a> AffineWavefronts<'a> {
     pub fn edit_cigar_score(
         &mut self,
         penalties: &mut AffinePenalties,
-    ) -> usize {
+    ) -> isize {
         let penalties = penalties as *mut AffinePenalties;
         let penalties_ptr: *mut affine_penalties_t = penalties.cast();
         let score = unsafe {
@@ -130,26 +130,21 @@ impl<'a> AffineWavefronts<'a> {
             edit_cigar_score_gap_affine(cigar, penalties_ptr)
         };
 
-        score as usize
+        score as isize
     }
 
     /// Prints the alignment using the C library pretty printer. For
     /// now it only prints to stderr.
     pub fn print_cigar(&mut self, pattern: &[u8], text: &[u8]) {
-        let pat_len = pattern.len() as c_int;
-        let text_len = text.len() as c_int;
-        let pattern = CString::new(pattern).unwrap();
-        let text = CString::new(text).unwrap();
-
         unsafe {
             let wf_ref = self.ptr.as_mut().unwrap();
             let cg_mut = &mut wf_ref.edit_cigar as *mut edit_cigar_t;
             edit_cigar_print_pretty(
                 stderr,
-                pattern.as_ptr(),
-                pat_len,
-                text.as_ptr(),
-                text_len,
+                pattern.as_ptr() as *const c_char,
+                pattern.len() as c_int,
+                text.as_ptr() as *const c_char,
+                text.len() as c_int,
                 cg_mut,
                 self.allocator.alloc_ptr(),
             );
