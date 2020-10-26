@@ -1,7 +1,4 @@
-use libc::{c_int, size_t};
-
-use wfa_rs::bindings::*;
-use wfa_rs::{affine_wavefront::*, mm_allocator::*, penalties::*};
+use wfa_rs::{affine_wavefront::*, bindings::*, mm_allocator::*, penalties::*};
 
 fn main() {
     let alloc = MMAllocator::new(BUFFER_SIZE_8M as u64);
@@ -19,7 +16,12 @@ fn main() {
     let pat_len = pattern.as_bytes().len();
     let text_len = text.as_bytes().len();
 
-    let mut wavefronts = AffineWavefronts::new_complete(pat_len, text_len, &mut penalties, &alloc);
+    let mut wavefronts = AffineWavefronts::new_complete(
+        pat_len,
+        text_len,
+        &mut penalties,
+        &alloc,
+    );
 
     wavefronts.align(pattern.as_bytes(), text.as_bytes());
 

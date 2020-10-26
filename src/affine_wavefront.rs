@@ -1,14 +1,13 @@
-use libc::{c_char, c_int, size_t};
 use std::ffi::CString;
 
-use crate::bindings::*;
-
-use crate::mm_allocator::MMAllocator;
-
-use crate::penalties::AffinePenalties;
+use crate::{
+    bindings::*, mm_allocator::MMAllocator, penalties::AffinePenalties,
+};
 
 pub struct AffineWavefronts<'a> {
     ptr: *mut affine_wavefronts_t,
+    // This allocator ref is mainly kept to force the wavefronts to be
+    // dropped before the allocator is freed
     allocator: &'a MMAllocator,
 }
 
@@ -81,32 +80,47 @@ impl<'a> AffineWavefronts<'a> {
         let text = CString::new(text).unwrap();
 
         unsafe {
-            affine_wavefronts_align(self.ptr, pattern.as_ptr(), pat_len, text.as_ptr(), text_len);
+            affine_wavefronts_align(
+                self.ptr,
+                pattern.as_ptr(),
+                pat_len,
+                text.as_ptr(),
+                text_len,
+            );
         }
     }
 
-    pub fn edit_cigar(&self) -> &edit_cigar_t {
+    fn edit_cigar(&self) -> &edit_cigar_t {
         unsafe {
             let wf_ref = self.ptr.as_ref().unwrap();
             &wf_ref.edit_cigar
         }
     }
 
-    /// Returns the cigar string for the alignment as a vector of
-    /// bytes. Note that each operation is repeated however many times
-    /// it applies, i.e. instead of "3M1X" you get "MMMX".
+    /// Returns the cigar string for the wavefront alignment as a
+    /// vector of bytes. Note that each operation is repeated however
+    /// many times it applies, i.e. instead of "3M1X" you get "MMMX".
     pub fn cigar_bytes(&self) -> Vec<u8> {
-        let cigar = self.edit_cigar();
-        let slice: &[u8] = unsafe {
-            let ops_ptr = cigar.operations as *mut u8;
-            let start = ops_ptr.offset(cigar.begin_offset as isize);
-            let len = (cigar.end_offset - cigar.begin_offset) as usize;
-            std::slice::from_raw_parts(start, len)
-        };
+        let slice = unsafe { self.cigar_slice() };
         slice.into()
     }
 
-    pub fn edit_cigar_score(&mut self, penalties: &mut AffinePenalties) -> usize {
+    /// Returns a slice to the cigar string for the wavefront
+    /// alignment. Unsafe as the slice is pointing to the
+    /// `edit_cigar_t` managed by libwfa.
+    pub unsafe fn cigar_slice(&self) -> &[u8] {
+        let cigar = self.edit_cigar();
+        let ops_ptr = cigar.operations as *mut u8;
+        let start = ops_ptr.offset(cigar.begin_offset as isize);
+        let len = (cigar.end_offset - cigar.begin_offset) as usize;
+        std::slice::from_raw_parts(start, len)
+    }
+
+    /// Returns the alignment score
+    pub fn edit_cigar_score(
+        &mut self,
+        penalties: &mut AffinePenalties,
+    ) -> usize {
         let penalties = penalties as *mut AffinePenalties;
         let penalties_ptr: *mut affine_penalties_t = penalties.cast();
         let score = unsafe {
@@ -118,6 +132,8 @@ impl<'a> AffineWavefronts<'a> {
         score as usize
     }
 
+    /// Prints the alignment using the C library pretty printer. For
+    /// now it only prints to stderr.
     pub fn print_cigar(&mut self, pattern: &[u8], text: &[u8]) {
         let pat_len = pattern.len() as c_int;
         let text_len = text.len() as c_int;
