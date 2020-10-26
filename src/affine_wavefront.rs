@@ -1,9 +1,11 @@
-use std::ffi::CString;
+use std::{ffi::CString, os::raw::c_int};
 
 use crate::{
     bindings::*, mm_allocator::MMAllocator, penalties::AffinePenalties,
 };
 
+/// Safe wrapper over an `affine_wavefronts_t` instance allocated by
+/// a libwfa `mm_allocator`.
 pub struct AffineWavefronts<'a> {
     ptr: *mut affine_wavefronts_t,
     // This allocator ref is mainly kept to force the wavefronts to be
@@ -12,21 +14,19 @@ pub struct AffineWavefronts<'a> {
 }
 
 impl<'a> AffineWavefronts<'a> {
+    /// Construct a new set of complete wavefronts
     pub fn new_complete(
         pattern_len: usize,
         text_len: usize,
         penalties: &mut AffinePenalties,
         alloc: &'a MMAllocator,
     ) -> Self {
-        let pat_len = pattern_len as c_int;
-        let text_len = text_len as c_int;
-        let penalties_ptr = penalties.as_ptr();
         let stats_ptr = std::ptr::null_mut() as *mut wavefronts_stats_t;
         let ptr = unsafe {
             affine_wavefronts_new_complete(
-                pat_len,
-                text_len,
-                penalties_ptr,
+                pattern_len as c_int,
+                text_len as c_int,
+                penalties.as_ptr(),
                 stats_ptr,
                 alloc.alloc_ptr(),
             )
@@ -37,6 +37,7 @@ impl<'a> AffineWavefronts<'a> {
         }
     }
 
+    /// Construct a new set of reduced wavefronts
     pub fn new_reduced(
         pattern_len: usize,
         text_len: usize,
@@ -45,14 +46,11 @@ impl<'a> AffineWavefronts<'a> {
         min_dist_threshold: i32,
         alloc: &'a MMAllocator,
     ) -> Self {
-        let pat_len = pattern_len as c_int;
-        let text_len = text_len as c_int;
         let stats_ptr = std::ptr::null_mut() as *mut wavefronts_stats_t;
-
         let ptr = unsafe {
             affine_wavefronts_new_reduced(
-                pat_len,
-                text_len,
+                pattern_len as c_int,
+                text_len as c_int,
                 penalties.as_ptr(),
                 min_wavefront_len as c_int,
                 min_dist_threshold as c_int,
@@ -67,25 +65,28 @@ impl<'a> AffineWavefronts<'a> {
         }
     }
 
+    /// Clear the wavefronts
     pub fn clear(&mut self) {
         unsafe {
             affine_wavefronts_clear(self.ptr);
         }
     }
 
+    /// Align the given pattern and text string. Will allocate new
+    /// `CStrings` for both byteslices, and callers need to make sure
+    /// the byteslices have the correct length compared to the lengths
+    /// used to construct thing wavefronts object.
     pub fn align(&mut self, pattern: &[u8], text: &[u8]) {
-        let pat_len = pattern.len() as c_int;
-        let text_len = text.len() as c_int;
-        let pattern = CString::new(pattern).unwrap();
-        let text = CString::new(text).unwrap();
+        let pat_cstr = CString::new(pattern).unwrap();
+        let text_cstr = CString::new(text).unwrap();
 
         unsafe {
             affine_wavefronts_align(
                 self.ptr,
-                pattern.as_ptr(),
-                pat_len,
-                text.as_ptr(),
-                text_len,
+                pat_cstr.as_ptr(),
+                pattern.len() as c_int,
+                text_cstr.as_ptr(),
+                text.len() as c_int,
             );
         }
     }
