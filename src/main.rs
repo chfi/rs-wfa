@@ -23,7 +23,9 @@ fn main() {
         &alloc,
     );
 
-    wavefronts.align(pattern.as_bytes(), text.as_bytes());
+    wavefronts
+        .align(pattern.as_bytes(), text.as_bytes())
+        .unwrap();
 
     let score = wavefronts.edit_cigar_score(&mut penalties);
 

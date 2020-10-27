@@ -18,13 +18,13 @@ fn run_complete<'a>(
     pattern: &str,
     text: &str,
     penalties: &mut AffinePenalties,
-) -> AffineWavefronts<'a> {
+) -> Result<AffineWavefronts<'a>, WavefrontError> {
     let mut wavefronts =
         AffineWavefronts::new_complete(pattern_len, text_len, penalties, alloc);
 
-    wavefronts.align(pattern.as_bytes(), text.as_bytes());
+    wavefronts.align(pattern.as_bytes(), text.as_bytes())?;
 
-    wavefronts
+    Ok(wavefronts)
 }
 
 #[test]
@@ -42,10 +42,10 @@ fn empty_texts() {
         gap_extension: 2,
     };
 
-    run_complete(&alloc, 0, 0, &pattern, &text, &mut penalties);
+    let result = run_complete(&alloc, 0, 0, &pattern, &text, &mut penalties);
+    assert!(result.is_ok());
 }
 
-// TODO instead of panicking, return a Result
 #[test]
 fn empty_wavefronts() {
     let alloc = MMAllocator::new(BUFFER_SIZE_8M as u64);
@@ -67,7 +67,9 @@ fn empty_wavefronts() {
         &mut penalties,
     );
 
-    wavefronts.align(pattern.as_bytes(), text.as_bytes());
+    let result = wavefronts.align(pattern.as_bytes(), text.as_bytes());
+
+    assert!(result.is_ok());
 
     let score = wavefronts.edit_cigar_score(&mut penalties);
     assert_eq!(score, 0);
@@ -77,9 +79,7 @@ fn empty_wavefronts() {
     assert_eq!("", cg_str);
 }
 
-// TODO instead of panicking, return a Result
 #[test]
-#[should_panic]
 fn longer_texts() {
     let alloc = MMAllocator::new(BUFFER_SIZE_8M as u64);
 
@@ -93,7 +93,9 @@ fn longer_texts() {
         gap_extension: 2,
     };
 
-    run_complete(&alloc, 10, 10, &pattern, &text, &mut penalties);
+    let result = run_complete(&alloc, 10, 10, &pattern, &text, &mut penalties);
+
+    assert!(result.is_err());
 }
 
 #[test]
@@ -117,7 +119,9 @@ fn shorter_texts() {
         &mut penalties,
     );
 
-    wavefronts.align(pattern.as_bytes(), text.as_bytes());
+    let result = wavefronts.align(pattern.as_bytes(), text.as_bytes());
+
+    assert!(result.is_ok());
 
     let score = wavefronts.edit_cigar_score(&mut penalties);
     assert_eq!(score, -24);
@@ -151,7 +155,9 @@ fn wavefronts_complete_align() {
         &alloc,
     );
 
-    wavefronts.align(pattern.as_bytes(), text.as_bytes());
+    let result = wavefronts.align(pattern.as_bytes(), text.as_bytes());
+
+    assert!(result.is_ok());
 
     let score = wavefronts.edit_cigar_score(&mut penalties);
     assert_eq!(score, -24);
@@ -187,7 +193,9 @@ fn wavefronts_reduced_align() {
         &alloc,
     );
 
-    wavefronts.align(pattern.as_bytes(), text.as_bytes());
+    let result = wavefronts.align(pattern.as_bytes(), text.as_bytes());
+
+    assert!(result.is_ok());
 
     let score = wavefronts.edit_cigar_score(&mut penalties);
     assert_eq!(score, -24);

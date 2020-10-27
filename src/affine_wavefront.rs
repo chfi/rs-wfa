@@ -4,6 +4,26 @@ use crate::{
     bindings::*, mm_allocator::MMAllocator, penalties::AffinePenalties,
 };
 
+
+#[derive(Debug, Clone, Copy)]
+pub enum WavefrontError {
+    InputLengthError,
+}
+
+impl std::fmt::Display for WavefrontError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WavefrontError::InputLengthError => write!(
+                f,
+                "Pattern and text must be no longer than \
+                 the lengths used to allocate the wavefront"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for WavefrontError {}
+
 /// Safe wrapper over an `affine_wavefronts_t` instance allocated by
 /// a libwfa `mm_allocator`.
 pub struct AffineWavefronts<'a> {
@@ -87,11 +107,14 @@ impl<'a> AffineWavefronts<'a> {
     /// Does *not* check that `pattern` and `text` are nul-terminated
     /// CStrings, since the C function used takes the string lengths
     /// as arguments.
-    pub fn align(&mut self, pattern: &[u8], text: &[u8]) {
-        // TODO instead of panicking, return a Result
-        assert!(
-            pattern.len() <= self.pattern_len && text.len() <= self.text_len
-        );
+    pub fn align(
+        &mut self,
+        pattern: &[u8],
+        text: &[u8],
+    ) -> Result<(), WavefrontError> {
+        if pattern.len() > self.pattern_len || text.len() > self.text_len {
+            return Err(WavefrontError::InputLengthError);
+        }
         unsafe {
             affine_wavefronts_align(
                 self.ptr,
@@ -101,6 +124,7 @@ impl<'a> AffineWavefronts<'a> {
                 text.len() as c_int,
             );
         }
+        Ok(())
     }
 
     fn edit_cigar(&self) -> &edit_cigar_t {
