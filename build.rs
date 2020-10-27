@@ -1,16 +1,38 @@
-use std::{env, fs::read_dir, path::PathBuf, process::Command};
+use std::{
+    env,
+    fs::{read_dir, remove_dir_all},
+    path::PathBuf,
+    process::Command,
+};
 
-// fn build_wfa() -> Result<(), Box<dyn std::error::Error>> {
 fn build_wfa() -> Option<()> {
     let mut wfa_dir = read_dir(&"./WFA").ok()?;
     if !wfa_dir.any(|f| f.unwrap().file_name() == "Makefile") {
         return None;
     }
 
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+
+    let wfa_path = out_path.join("WFA");
+
+    let _ = remove_dir_all(wfa_path.as_path());
+
+    // copy the WFA dir to OUT_PATH and build it there... clunky, but
+    // don't want to pull in the entire 100MB WFA repo, since git2
+    // doesn't seem to support shallow clones, and build scripts
+    // should only modify things inside OUT_PATH. since the WFA folder
+    // is just a couple MB, this is fine for now.
+    let _cp_wfa = Command::new("cp")
+        .arg("-r")
+        .arg("./WFA")
+        .arg(&out_path)
+        .output()
+        .unwrap();
+
     let output = Command::new("make")
         .arg("clean")
         .arg("all")
-        .current_dir(&"./WFA")
+        .current_dir(&wfa_path)
         .output()
         .unwrap();
     if output.status.success() {
@@ -25,8 +47,12 @@ fn main() {
         panic!("Error building WFA C library");
     }
 
-    println!("cargo:rustc-link-search=native=WFA/build");
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+
+    let wfa_path = out_path.join("WFA").join("build");
+
     println!("cargo:rustc-link-lib=wfa");
+    println!("cargo:rustc-link-search={}", wfa_path.display());
 
     let bindings = bindgen::Builder::default()
         .clang_arg("-IWFA")

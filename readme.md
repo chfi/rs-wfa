@@ -72,3 +72,13 @@ fn main() {
 ```
 
 See the tests for more examples.
+
+## Build from source
+
+Make sure to clone with the WFA submodule:
+
+```bash
+git clone --recursive https://github.com/chfi/wfa-rs
+cd wfa-rs
+cargo build
+```
