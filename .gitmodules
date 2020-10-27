@@ -3,3 +3,4 @@
 	url = git@github.com:smarco/WFA.git
   shallow = true
   branch = eaff44ff646dfa2b9f79b9e0479048a8cc1e8aae
+  ignore = dirty
