@@ -11,6 +11,8 @@ pub struct AffineWavefronts<'a> {
     // This allocator ref is mainly kept to force the wavefronts to be
     // dropped before the allocator is freed
     allocator: &'a MMAllocator,
+    pattern_len: usize,
+    text_len: usize,
 }
 
 impl<'a> AffineWavefronts<'a> {
@@ -21,6 +23,7 @@ impl<'a> AffineWavefronts<'a> {
         penalties: &mut AffinePenalties,
         alloc: &'a MMAllocator,
     ) -> Self {
+        // TODO instead of panicking, return a Result
         assert!(pattern_len > 0 && text_len > 0);
         let stats_ptr = std::ptr::null_mut() as *mut wavefronts_stats_t;
         let ptr = unsafe {
@@ -35,6 +38,8 @@ impl<'a> AffineWavefronts<'a> {
         AffineWavefronts {
             ptr,
             allocator: alloc,
+            pattern_len,
+            text_len,
         }
     }
 
@@ -47,6 +52,7 @@ impl<'a> AffineWavefronts<'a> {
         min_dist_threshold: i32,
         alloc: &'a MMAllocator,
     ) -> Self {
+        // TODO instead of panicking, return a Result
         assert!(pattern_len > 0 && text_len > 0);
         let stats_ptr = std::ptr::null_mut() as *mut wavefronts_stats_t;
         let ptr = unsafe {
@@ -64,6 +70,8 @@ impl<'a> AffineWavefronts<'a> {
         Self {
             ptr,
             allocator: alloc,
+            pattern_len,
+            text_len,
         }
     }
 
@@ -82,6 +90,10 @@ impl<'a> AffineWavefronts<'a> {
     /// CStrings, since the C function used takes the string lengths
     /// as arguments.
     pub fn align(&mut self, pattern: &[u8], text: &[u8]) {
+        // TODO instead of panicking, return a Result
+        assert!(
+            pattern.len() <= self.pattern_len && text.len() <= self.text_len
+        );
         unsafe {
             affine_wavefronts_align(
                 self.ptr,

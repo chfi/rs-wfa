@@ -2,21 +2,21 @@ use wfa_rs::{affine_wavefront::*, bindings::*, mm_allocator::*, penalties::*};
 
 fn run_complete<'a>(
     alloc: &'a MMAllocator,
+    pattern_len: usize,
+    text_len: usize,
     pattern: &str,
     text: &str,
     penalties: &mut AffinePenalties,
 ) -> AffineWavefronts<'a> {
-    let pat_len = pattern.as_bytes().len();
-    let text_len = text.as_bytes().len();
-
     let mut wavefronts =
-        AffineWavefronts::new_complete(pat_len, text_len, penalties, alloc);
+        AffineWavefronts::new_complete(pattern_len, text_len, penalties, alloc);
 
     wavefronts.align(pattern.as_bytes(), text.as_bytes());
 
     wavefronts
 }
 
+// TODO instead of panicking, return a Result
 #[test]
 #[should_panic]
 fn empty_texts() {
@@ -32,7 +32,28 @@ fn empty_texts() {
         gap_extension: 2,
     };
 
-    run_complete(&alloc, &pattern, &text, &mut penalties);
+    run_complete(&alloc, 0, 0, &pattern, &text, &mut penalties);
+}
+
+// TODO instead of panicking, return a Result
+#[test]
+#[should_panic]
+fn longer_texts() {
+    let alloc = MMAllocator::new(BUFFER_SIZE_8M as u64);
+
+    let pattern = String::from("TCTTTACTCGCGCGTTGGAGAAATACAATAGT");
+    let text = String::from("TCTATACTGCGCGTTTGGAGAAATAAAATAGT");
+
+    let mut penalties = AffinePenalties {
+        match_: 0,
+        mismatch: 4,
+        gap_opening: 6,
+        gap_extension: 2,
+    };
+
+    run_complete(&alloc, 10, 10, &pattern, &text, &mut penalties);
+}
+
 }
 
 #[test]
