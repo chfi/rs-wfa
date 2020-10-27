@@ -396,6 +396,7 @@ dependencies = [
  "bindgen",
  "libc",
  "quickcheck",
+ "rand",
 ]
 
 [[package]]
