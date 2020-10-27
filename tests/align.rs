@@ -25,7 +25,6 @@ fn run_complete<'a>(
     wavefronts
 }
 
-// TODO instead of panicking, return a Result
 #[test]
 #[should_panic]
 fn empty_texts() {
@@ -42,6 +41,38 @@ fn empty_texts() {
     };
 
     run_complete(&alloc, 0, 0, &pattern, &text, &mut penalties);
+}
+
+// TODO instead of panicking, return a Result
+#[test]
+fn empty_wavefronts() {
+    let alloc = MMAllocator::new(BUFFER_SIZE_8M as u64);
+
+    let mut penalties = AffinePenalties {
+        match_: 0,
+        mismatch: 4,
+        gap_opening: 6,
+        gap_extension: 2,
+    };
+
+    let pattern = String::from("");
+    let text = String::from("");
+
+    let mut wavefronts = new_complete(
+        &alloc,
+        pattern.len() + 10,
+        text.len() + 10,
+        &mut penalties,
+    );
+
+    wavefronts.align(pattern.as_bytes(), text.as_bytes());
+
+    let score = wavefronts.edit_cigar_score(&mut penalties);
+    assert_eq!(score, 0);
+
+    let cigar = wavefronts.cigar_bytes();
+    let cg_str = std::str::from_utf8(&cigar).unwrap();
+    assert_eq!("", cg_str);
 }
 
 // TODO instead of panicking, return a Result

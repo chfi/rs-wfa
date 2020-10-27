@@ -23,7 +23,6 @@ impl<'a> AffineWavefronts<'a> {
         penalties: &mut AffinePenalties,
         alloc: &'a MMAllocator,
     ) -> Self {
-        // TODO instead of panicking, return a Result
         assert!(pattern_len > 0 && text_len > 0);
         let stats_ptr = std::ptr::null_mut() as *mut wavefronts_stats_t;
         let ptr = unsafe {
@@ -52,7 +51,6 @@ impl<'a> AffineWavefronts<'a> {
         min_dist_threshold: i32,
         alloc: &'a MMAllocator,
     ) -> Self {
-        // TODO instead of panicking, return a Result
         assert!(pattern_len > 0 && text_len > 0);
         let stats_ptr = std::ptr::null_mut() as *mut wavefronts_stats_t;
         let ptr = unsafe {
