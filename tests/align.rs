@@ -1,4 +1,4 @@
-use wfa_rs::{affine_wavefront::*, bindings::*, mm_allocator::*, penalties::*};
+use libwfa::{affine_wavefront::*, bindings::*, mm_allocator::*, penalties::*};
 
 fn new_complete<'a>(
     alloc: &'a MMAllocator,

@@ -1,4 +1,4 @@
-wfa-rs
+libwfa
 ========
 
 Rust bindings for the [wavefront

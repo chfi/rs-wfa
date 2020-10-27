@@ -4,7 +4,6 @@ use crate::{
     bindings::*, mm_allocator::MMAllocator, penalties::AffinePenalties,
 };
 
-
 #[derive(Debug, Clone, Copy)]
 pub enum WavefrontError {
     InputLengthError,
