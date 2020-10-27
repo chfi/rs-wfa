@@ -136,9 +136,18 @@ impl<'a> AffineWavefronts<'a> {
     /// Returns the cigar string for the wavefront alignment as a
     /// vector of bytes. Note that each operation is repeated however
     /// many times it applies, i.e. instead of "3M1X" you get "MMMX".
-    pub fn cigar_bytes(&self) -> Vec<u8> {
+    pub fn cigar_bytes_raw(&self) -> Vec<u8> {
         let slice = unsafe { self.cigar_slice() };
         slice.into()
+    }
+
+    pub fn cigar_bytes(&self) -> Vec<u8> {
+        let slice = unsafe { self.cigar_slice() };
+        if slice.is_empty() {
+            Vec::new()
+        } else {
+            compress_cigar(slice).unwrap()
+        }
     }
 
     /// Returns a slice to the cigar string for the wavefront
@@ -185,6 +194,33 @@ impl<'a> AffineWavefronts<'a> {
             );
         }
     }
+}
+
+/// "Compresses" a cigar string produced by WFA (like "MMMXXII") into
+/// a regular cigar string with operation counts (e.g. "3M2X2I")
+fn compress_cigar(cigar: &[u8]) -> Option<Vec<u8>> {
+    let mut result = Vec::new();
+
+    let mut iter = cigar.iter();
+    let mut last_op = iter.next().copied()?;
+    let mut last_count = 1;
+    for &op in iter {
+        if op == last_op {
+            last_count += 1;
+        } else {
+            let op_char = char::from(last_op);
+            let string = format!("{}{}", last_count, op_char);
+            result.extend(string.as_bytes());
+            last_op = op;
+            last_count = 1;
+        }
+    }
+
+    let op_char = char::from(last_op);
+    let string = format!("{}{}", last_count, op_char);
+    result.extend(string.as_bytes());
+
+    Some(result)
 }
 
 impl Drop for AffineWavefronts<'_> {

@@ -72,7 +72,7 @@ fn empty_wavefronts() {
     let score = wavefronts.edit_cigar_score(&mut penalties);
     assert_eq!(score, 0);
 
-    let cigar = wavefronts.cigar_bytes();
+    let cigar = wavefronts.cigar_bytes_raw();
     let cg_str = std::str::from_utf8(&cigar).unwrap();
     assert_eq!("", cg_str);
 }
@@ -124,7 +124,7 @@ fn shorter_texts() {
     let score = wavefronts.edit_cigar_score(&mut penalties);
     assert_eq!(score, -24);
 
-    let cigar = wavefronts.cigar_bytes();
+    let cigar = wavefronts.cigar_bytes_raw();
     let cg_str = std::str::from_utf8(&cigar).unwrap();
     assert_eq!("MMMXMMMMDMMMMMMMIMMMMMMMMMXMMMMMM", cg_str);
 }
@@ -160,9 +160,13 @@ fn wavefronts_complete_align() {
     let score = wavefronts.edit_cigar_score(&mut penalties);
     assert_eq!(score, -24);
 
-    let cigar = wavefronts.cigar_bytes();
+    let cigar = wavefronts.cigar_bytes_raw();
     let cg_str = std::str::from_utf8(&cigar).unwrap();
     assert_eq!("MMMXMMMMDMMMMMMMIMMMMMMMMMXMMMMMM", cg_str);
+
+    let cigar = wavefronts.cigar_bytes();
+    let cg_str = std::str::from_utf8(&cigar).unwrap();
+    assert_eq!("3M1X4M1D7M1I9M1X6M", cg_str);
 }
 
 #[test]
@@ -198,7 +202,7 @@ fn wavefronts_reduced_align() {
     let score = wavefronts.edit_cigar_score(&mut penalties);
     assert_eq!(score, -24);
 
-    let cigar = wavefronts.cigar_bytes();
+    let cigar = wavefronts.cigar_bytes_raw();
     let cg_str = std::str::from_utf8(&cigar).unwrap();
     assert_eq!("MMMXMMMMDMMMMMMMIMMMMMMMMMXMMMMMM", cg_str);
 }
