@@ -1,7 +1,5 @@
 use wfa_rs::{affine_wavefront::*, bindings::*, mm_allocator::*, penalties::*};
 
-use quickcheck::*;
-
 fn new_complete<'a>(
     alloc: &'a MMAllocator,
     pattern_len: usize,
@@ -203,86 +201,4 @@ fn wavefronts_reduced_align() {
     let cigar = wavefronts.cigar_bytes();
     let cg_str = std::str::from_utf8(&cigar).unwrap();
     assert_eq!("MMMXMMMMDMMMMMMMIMMMMMMMMMXMMMMMM", cg_str);
-}
-
-fn gen_base<G: Gen>(g: &mut G) -> u8 {
-    let base = u8::arbitrary(g) & 4;
-    match base {
-        0 => b'A',
-        1 => b'G',
-        2 => b'C',
-        3 => b'T',
-        _ => unreachable!(),
-    }
-}
-
-fn generate_pattern<G: Gen>(g: &mut G, len: usize) -> Vec<u8> {
-    let mut result = Vec::with_capacity(len);
-
-    for _ in 0..len {
-        let base = gen_base(g);
-        result.push(base);
-    }
-
-    result
-}
-
-#[derive(Clone, Copy, Debug)]
-enum AlignErrorKind {
-    Mismatch,
-    Insertion,
-    Deletion,
-}
-
-impl Arbitrary for AlignErrorKind {
-    fn arbitrary<G: Gen>(g: &mut G) -> Self {
-        let kind = u8::arbitrary(g) % 3;
-        match kind {
-            0 => AlignErrorKind::Mismatch,
-            1 => AlignErrorKind::Insertion,
-            2 => AlignErrorKind::Deletion,
-            _ => unreachable!(),
-        }
-    }
-}
-
-// based off of the WFA generate_dataset.c
-fn generate_text<G: Gen>(
-    g: &mut G,
-    pattern: &[u8],
-    error_degree: f64,
-) -> Vec<u8> {
-    assert!(pattern.len() > 0);
-    let mut result = pattern.to_owned();
-
-    let mut cigar = vec![b'M'; pattern.len()];
-
-    let errors = (error_degree * pattern.len() as f64).ceil() as usize;
-
-    for _ in 0..errors {
-        match AlignErrorKind::arbitrary(g) {
-            AlignErrorKind::Mismatch => {
-                let index = usize::arbitrary(g) % result.len();
-                let mut base = gen_base(g);
-                while base == result[index] {
-                    base = gen_base(g);
-                }
-                result[index] = base;
-                cigar[index] = b'X';
-            }
-            AlignErrorKind::Insertion => {
-                let index = usize::arbitrary(g) % result.len();
-                let base = gen_base(g);
-                result.insert(index, base);
-                cigar.insert(index, b'I');
-            }
-            AlignErrorKind::Deletion => {
-                let index = usize::arbitrary(g) % result.len();
-                result.remove(index);
-                result[index] = b'D';
-            }
-        }
-    }
-
-    result
 }
