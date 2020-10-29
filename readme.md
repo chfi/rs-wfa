@@ -16,6 +16,15 @@ Just add `libwfa` to your Cargo dependencies:
 libwfa = "0.1"
 ```
 
+## Dependencies
+
+As a binding, llvm and libclang are required on Unix systems. These can be installed by package managers, for example on Ubuntu with:
+
+```bash
+sudo apt install llvm
+sudo apt install libclang-dev
+```
+
 ## Example
 
 At this stage, usage maps closely to the C library.
