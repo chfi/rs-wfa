@@ -29,6 +29,13 @@ fn build_wfa() -> Option<()> {
         .output()
         .unwrap();
 
+    // hotfix Makefile
+    let _makefile_fix = Command::new("sed")
+        .arg("-i")
+        .arg("s/CC_FLAGS=-Wall -g/CC_FLAGS=-Wall -g -fPIC/g")
+        .output()
+        .unwrap();
+
     let output = Command::new("make")
         .arg("clean")
         .arg("all")
